@@ -130,7 +130,11 @@ namespace CGL {
         Vector3D ts = ((eta2 * cos2) / (eta0 * cos0)) * ((betaS * betaS) / (alphaS * alphaS - 2 * alphaS * cosPsi + 1));
         Vector3D tp = ((eta2 * cos2) / (eta0 * cos0)) * ((betaP * betaP) / (alphaP * alphaP - 2 * alphaP * cosPsi + 1));
         Vector3D T = (ts + tp) / 2;
-        return Vector3D(1.0) - T;
+        Vector3D color = Vector3D(1.0, 1.0, 1.0);
+        T = T * Vector3D(exp(-color.x * thick / lambda[0]), exp(-color.y * thick / lambda[1]), exp(-color.z * thick / lambda[2]));
+        Vector3D I = Vector3D(1.0) + 0.5 * cosPsi;
+        return Vector3D(1.0) - T * I;
+        
     }
 
     Vector3D MicrofacetBSDF::f(const Vector3D wo, const Vector3D wi) {
