@@ -54,20 +54,21 @@ namespace CGL {
     }
 
     // Helper functions for Iridescence. R and T functions represent reflection and transmission coefficients
-    Vector3D costrans(Vector3D eta, Vector3D eta2, Vector3D sini) {
-        Vector3D sin = (eta / eta2) * sini;
-        Vector3D cos = 0;
-        cos.x = sqrt(1 - cos.x * cos.x);
-        cos.y = sqrt(1 - cos.y * cos.y);
-        cos.z = sqrt(1 - cos.z * cos.z);
+    Vector3D costrans(Vector3D sini) {
+        double mag = std::sqrt(sini.x * sini.x + sini.y * sini.y + sini.z * sini.z);
+        Vector3D cos;
+        cos.x = std::sqrt(1 - (sini.x / mag) * (sini.x / mag));
+        cos.y = std::sqrt(1 - (sini.y / mag) * (sini.y / mag));
+        cos.z = std::sqrt(1 - (sini.z / mag) * (sini.z / mag));
         return cos;
     }
 
-    Vector3D sintrans(Vector3D cos) {
-        Vector3D sin;
-        sin.x = sqrt(1 - cos.x * cos.x);
-        sin.y = sqrt(1 - cos.y * cos.y);
-        sin.z = sqrt(1 - cos.z * cos.z);
+    Vector3D sintrans(Vector3D eta, Vector3D eta2, Vector3D cos) {
+        Vector3D sin = (eta / eta2) * (eta / eta2);
+
+        sin.x = sin.x * (1 - cos.x * cos.x);
+        sin.y = sin.y * (1 - cos.y * cos.y);
+        sin.z = sin.z * (1 - cos.z * cos.z);
         return sin;
     }
 
@@ -87,13 +88,20 @@ namespace CGL {
         return (2 * eta * cosi) / (eta2 * cosi + eta * cost);
     }
 
-    Vector3D Psi(Vector3D lambda, double thick, Vector3D eta, Vector3D eta2, Vector3D costheta) {
+    Vector3D Psi(Vector3D lambda, double thick, Vector3D eta0, Vector3D eta1, Vector3D eta2, Vector3D costheta) {
         // 180 phase shift if eta2>eta
-        Vector3D delta = 0;
-        if (eta2.x > eta.x) delta.x = PI;
-        if (eta2.y > eta.y) delta.y = PI;
-        if (eta2.z > eta.z) delta.z = PI;
-        return (2 * PI / lambda) * (2 * eta * thick * costheta) + delta;
+        Vector3D delta1 = 0;
+        if (eta1.x > eta0.x) delta1.x = PI;
+        if (eta1.y > eta0.y) delta1.y = PI;
+        if (eta1.z > eta0.z) delta1.z = PI;
+
+        Vector3D delta2 = 0;
+        if (eta1.x > eta2.x) delta2.x = PI;
+        if (eta1.y > eta2.y) delta2.y = PI;
+        if (eta1.z > eta2.z) delta2.z = PI;
+
+        Vector3D delta = delta1 + delta2;
+        return (2 * PI / lambda) * (2 * eta1 * thick * costheta) + delta;
     }
 
 
@@ -107,12 +115,12 @@ namespace CGL {
 
         // Fresnell R and T
         Vector3D eta0 = 1;
-        Vector3D eta2 = 1.3;
+        Vector3D eta2 = 1.33;
         Vector3D cos0 = wi.z;
-        Vector3D sin0 = sintrans(cos0);
-        Vector3D cos1 = costrans(eta0, eta, sin0);
-        Vector3D sin1 = sintrans(cos1);
-        Vector3D cos2 = costrans(eta, eta2, sin1);
+        Vector3D sin1 = sintrans(eta0, eta, cos0);
+        Vector3D cos1 = costrans(sin1);
+        Vector3D sin2 = sintrans(eta, eta2, cos1);
+        Vector3D cos2 = costrans(sin2);
 
         Vector3D alphaS = Rs(eta, eta0, cos1, cos0) * Rs(eta, eta2, cos1, cos2);
         Vector3D alphaP = Rp(eta, eta0, cos1, cos0) * Rp(eta, eta2, cos1, cos2);
@@ -120,21 +128,17 @@ namespace CGL {
         Vector3D betaP = Tp(eta0, eta, cos0, cos1) * Tp(eta, eta2, cos1, cos2);
 
         // Phase changes
-        Vector3D lambda = (614, 549, 466); //wavelengths of R,G,B
-        srand(147); //setting seed to 147 (arbitraty number)
-        double thick = 200.0 + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (400.0 - 300.0))); //random thickness between 200 and 400
-        Vector3D psi = Psi(lambda, thick, eta, eta2, cos1);
-        Vector3D cosPsi = (cos(psi.x), cos(psi.y), cos(psi.z));
+        Vector3D lambda = { 614, 549, 466 }; //wavelengths of R,G,B
+
+        double thick = 200 + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (400.0 - 300.0))); //random thickness between 200 and 400
+        Vector3D psi = Psi(lambda, thick, eta0, eta, eta2, cos1);
+        Vector3D cosPsi = { cos(psi.x), cos(psi.y), cos(psi.z) };
         //std::cout << cosPsi << std::endl;
 
-        Vector3D ts = ((eta2 * cos2) / (eta0 * cos0)) * ((betaS * betaS) / (alphaS * alphaS - 2 * alphaS * cosPsi + 1));
-        Vector3D tp = ((eta2 * cos2) / (eta0 * cos0)) * ((betaP * betaP) / (alphaP * alphaP - 2 * alphaP * cosPsi + 1));
-        Vector3D T = (ts + tp) / 2;
-        Vector3D color = Vector3D(1.0, 1.0, 1.0);
-        T = T * Vector3D(exp(-color.x * thick / lambda[0]), exp(-color.y * thick / lambda[1]), exp(-color.z * thick / lambda[2]));
-        Vector3D I = Vector3D(1.0) + 0.5 * cosPsi;
-        return Vector3D(1.0) - T * I;
-        
+        Vector3D ts = ((betaS * betaS) / (alphaS * alphaS - 2 * alphaS * cosPsi + 1));
+        Vector3D tp = ((betaP * betaP) / (alphaP * alphaP - 2 * alphaP * cosPsi + 1));
+        Vector3D T = ((eta2 * cos2) / (eta0 * cos0)) * (ts + tp) / 2;
+        return Vector3D(1.0) - T;
     }
 
     Vector3D MicrofacetBSDF::f(const Vector3D wo, const Vector3D wi) {
