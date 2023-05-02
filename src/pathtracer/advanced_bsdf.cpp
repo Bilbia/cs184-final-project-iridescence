@@ -130,7 +130,7 @@ namespace CGL {
         // Phase changes
         Vector3D lambda = { 614, 549, 466 }; //wavelengths of R,G,B
 
-        double thick = 200 + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (400.0 - 300.0))); //random thickness between 200 and 400
+        double thick = 550; //random thickness between 200 and 400
         Vector3D psi = Psi(lambda, thick, eta0, eta, eta2, cos1);
         Vector3D cosPsi = { cos(psi.x), cos(psi.y), cos(psi.z) };
         //std::cout << cosPsi << std::endl;
