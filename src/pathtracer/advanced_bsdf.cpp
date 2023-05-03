@@ -25,26 +25,51 @@ namespace CGL {
 //        *pdf = 1;
 //        reflect(wo, wi);
 //        return reflectance/abs_cos_theta(*wi);
-      if (!refract(wo, wi, 1)) {
-        reflect(wo, wi);
-        *pdf = 1;
-        return reflectance / abs_cos_theta(*wi);
-      }
-      double R0 = pow((1 - 1) / (1 + 1), 2);
-      double R = R0 + (1 - R0) * pow(1 - abs_cos_theta(wo), 5);
-      if (coin_flip(R)) {
-        reflect(wo, wi);
-        *pdf = R;
-        return R * reflectance / abs_cos_theta(*wi);
-      }
-      double eta = 1;
-      if (wo.z >= 0) {
-        eta = 1. / 1;
-      }
-      refract(wo, wi, 1);
-      *pdf = 1 - R;
-      Vector3D transmittance = (1,1,1);
-      return (1 - R) * transmittance / abs_cos_theta(*wi) / pow(eta, 2);
+        if (!refract(wo, wi, 1)) {
+            reflect(wo, wi);
+            *pdf = 1;
+            return reflectance / abs_cos_theta(*wi);
+        }
+        // Compute thin film interference
+        double thickness = 200;  // thickness of the thin film in nanometers
+        double n_film = 1.33;
+        double lambda_r = 614e-9;
+        double lambda_g = 549e-9;
+        double lambda_b = 466e-9;
+        double cos_theta_i = abs_cos_theta(wo);
+        double cos_theta_t = sqrt(1 - pow(1 / n_film, 2) * (1 - cos_theta_i * cos_theta_i));
+        double delta_r = 2 * PI * n_film * (thickness / lambda_r) * cos_theta_t + PI / 2.;
+        double delta_g = 2 * PI * n_film * (thickness / lambda_g) * cos_theta_t + PI / 2.;
+        double delta_b = 2 * PI * n_film * (thickness / lambda_b) * cos_theta_t + PI / 2.;
+        Vector3D phase_shift = { cos(delta_r), cos(delta_g), cos(delta_b) };
+
+        // Compute Fresnel coefficients
+        double R0 = pow((1 - 1) / (1 + 1), 2);
+        double R = R0 + (1 - R0) * pow(1 - cos_theta_i, 5);
+        double T = 1 - R;
+
+        // Compute reflectance and transmittance
+
+
+        // Compute reflected and transmitted directions
+        double eta = 1;
+        if (wo.z >= 0) {
+            eta = 1. / n_film;
+        }
+        else {
+            eta = n_film;
+        }
+        if (coin_flip(R)) {
+            reflect(wo, wi);
+            *pdf = R;
+            return R * reflectance / abs_cos_theta(*wi);
+        }
+        refract(wo, wi, 1);
+
+        // Compute PDF and return BSDF value
+        *pdf = 1 - R;
+        Vector3D transmittance = (1, 1, 1);
+        return phase_shift * T * transmittance / abs_cos_theta(*wi) / pow(eta, 2);
 
 
 
@@ -259,21 +284,45 @@ namespace CGL {
             *pdf = 1;
             return reflectance / abs_cos_theta(*wi);
         }
+        // Compute thin film interference
+        double thickness = 200;  // thickness of the thin film in nanometers
+        double n_film = 1.33; 
+        double lambda_r = 614e-9;
+        double lambda_g = 549e-9;
+        double lambda_b = 466e-9;
+        double cos_theta_i = abs_cos_theta(wo);
+        double cos_theta_t = sqrt(1 - pow(1 / n_film, 2) * (1 - cos_theta_i * cos_theta_i));
+        double delta_r = 2 * PI * n_film * (thickness / lambda_r) * cos_theta_t + PI / 2.;
+        double delta_g = 2 * PI * n_film * (thickness / lambda_g) * cos_theta_t + PI / 2.;
+        double delta_b = 2 * PI * n_film * (thickness / lambda_b) * cos_theta_t + PI / 2.;
+        Vector3D phase_shift = { cos(delta_r), cos(delta_g), cos(delta_b) };
+
+        // Compute Fresnel coefficients
         double R0 = pow((1 - 1) / (1 + 1), 2);
-        double R = R0 + (1 - R0) * pow(1 - abs_cos_theta(wo), 5);
+        double R = R0 + (1 - R0) * pow(1 - cos_theta_i, 5);
+        double T = 1 - R;
+
+        // Compute reflectance and transmittance
+       
+
+        // Compute reflected and transmitted directions
+        double eta = 1;
+        if (wo.z >= 0) {
+            eta = 1. / n_film;
+        }
+        else {
+            eta = n_film;
+        }
         if (coin_flip(R)) {
             reflect(wo, wi);
             *pdf = R;
             return R * reflectance / abs_cos_theta(*wi);
         }
-        double eta = 1;
-        if (wo.z >= 0) {
-            eta = 1. / 1;
-        }
         refract(wo, wi, 1);
+
+        // Compute PDF and return BSDF value
         *pdf = 1 - R;
-        Vector3D transmittance = (1,1,1);
-        return (1 - R) * transmittance / abs_cos_theta(*wi) / pow(eta, 2);
+        return phase_shift * T * transmittance / abs_cos_theta(*wi) / pow(eta, 2);
 //        *pdf = 1;
 //        reflect(wo, wi);
 //        return reflectance/abs_cos_theta(*wi);
