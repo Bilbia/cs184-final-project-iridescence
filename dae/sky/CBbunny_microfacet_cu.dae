@@ -74,7 +74,7 @@
         <technique profile="CGL">
           <microfacet>
             <alpha>0.05</alpha>
-            <eta>0.33228 1.0162 1.2474</eta>
+            <eta>1.33228 1.0162 1.2474</eta>
             <k>3.1646 2.5785 2.4603</k>
           </microfacet>
         </technique>
