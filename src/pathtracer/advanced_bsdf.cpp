@@ -22,9 +22,32 @@ namespace CGL {
 
         // TODO Project 3-2: Part 1
         // Implement MirrorBSDF
-        *pdf = 1;
+//        *pdf = 1;
+//        reflect(wo, wi);
+//        return reflectance/abs_cos_theta(*wi);
+      if (!refract(wo, wi, 1)) {
         reflect(wo, wi);
-        return reflectance/abs_cos_theta(*wi);
+        *pdf = 1;
+        return reflectance / abs_cos_theta(*wi);
+      }
+      double R0 = pow((1 - 1) / (1 + 1), 2);
+      double R = R0 + (1 - R0) * pow(1 - abs_cos_theta(wo), 5);
+      if (coin_flip(R)) {
+        reflect(wo, wi);
+        *pdf = R;
+        return R * reflectance / abs_cos_theta(*wi);
+      }
+      double eta = 1;
+      if (wo.z >= 0) {
+        eta = 1. / 1;
+      }
+      refract(wo, wi, 1);
+      *pdf = 1 - R;
+      Vector3D transmittance = (1,1,1);
+      return (1 - R) * transmittance / abs_cos_theta(*wi) / pow(eta, 2);
+
+
+
     }
 
     void MirrorBSDF::render_debugger_node()
@@ -231,28 +254,30 @@ namespace CGL {
 
         // compute Fresnel coefficient and use it as the probability of reflection
         // - Fundamentals of Computer Graphics page 305
-
-        if (!refract(wo, wi, ior)) {
+        if (!refract(wo, wi, 1)) {
             reflect(wo, wi);
             *pdf = 1;
             return reflectance / abs_cos_theta(*wi);
         }
-        double R0 = pow((1 - ior) / (1 + ior), 2);
+        double R0 = pow((1 - 1) / (1 + 1), 2);
         double R = R0 + (1 - R0) * pow(1 - abs_cos_theta(wo), 5);
-        
         if (coin_flip(R)) {
             reflect(wo, wi);
             *pdf = R;
             return R * reflectance / abs_cos_theta(*wi);
         }
-
-        double eta = ior;
+        double eta = 1;
         if (wo.z >= 0) {
-            eta = 1. / ior;
+            eta = 1. / 1;
         }
-        refract(wo, wi, ior);
+        refract(wo, wi, 1);
         *pdf = 1 - R;
+        Vector3D transmittance = (1,1,1);
         return (1 - R) * transmittance / abs_cos_theta(*wi) / pow(eta, 2);
+//        *pdf = 1;
+//        reflect(wo, wi);
+//        return reflectance/abs_cos_theta(*wi);
+
     }
 
     void GlassBSDF::render_debugger_node()
