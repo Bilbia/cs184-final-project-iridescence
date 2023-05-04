@@ -44,13 +44,13 @@ namespace CGL {
         Vector3D phase_shift = { cos(delta_r), cos(delta_g), cos(delta_b) };
 
         // Compute Fresnel coefficients
-        double R0 = pow((1 - 1) / (1 + 1), 2);
+        double R0 = pow((1 - n_film) / (1 + n_film), 2);
         double R = R0 + (1 - R0) * pow(1 - cos_theta_i, 5);
         double T = 1 - R;
 
         // Compute reflectance and transmittance
-
-
+        Vector3D transmittance = (1, 1, 1);
+        Vector3D F = R * Vector3D(1.0) + T * transmittance;
         // Compute reflected and transmitted directions
         double eta = 1;
         if (wo.z >= 0) {
@@ -64,12 +64,11 @@ namespace CGL {
             *pdf = R;
             return R * reflectance / abs_cos_theta(*wi);
         }
-        refract(wo, wi, 1);
 
+        refract(wo, wi, 1);
         // Compute PDF and return BSDF value
         *pdf = 1 - R;
-        Vector3D transmittance = (1, 1, 1);
-        return phase_shift * T * transmittance / abs_cos_theta(*wi) / pow(eta, 2);
+        return (Vector3D(1.0) - phase_shift) * T * T * T * T * T * transmittance / abs_cos_theta(*wi) / pow(eta, 2);
 
 
 
@@ -279,6 +278,7 @@ namespace CGL {
 
         // compute Fresnel coefficient and use it as the probability of reflection
         // - Fundamentals of Computer Graphics page 305
+
         if (!refract(wo, wi, 1)) {
             reflect(wo, wi);
             *pdf = 1;
@@ -298,13 +298,13 @@ namespace CGL {
         Vector3D phase_shift = { cos(delta_r), cos(delta_g), cos(delta_b) };
 
         // Compute Fresnel coefficients
-        double R0 = pow((1 - 1) / (1 + 1), 2);
+        double R0 = pow((1 - n_film) / (1 + n_film), 2);
         double R = R0 + (1 - R0) * pow(1 - cos_theta_i, 5);
         double T = 1 - R;
 
         // Compute reflectance and transmittance
        
-
+        Vector3D F = R * Vector3D(1.0) + T * transmittance;
         // Compute reflected and transmitted directions
         double eta = 1;
         if (wo.z >= 0) {
@@ -318,11 +318,11 @@ namespace CGL {
             *pdf = R;
             return R * reflectance / abs_cos_theta(*wi);
         }
+       
         refract(wo, wi, 1);
-
         // Compute PDF and return BSDF value
         *pdf = 1 - R;
-        return phase_shift * T * transmittance / abs_cos_theta(*wi) / pow(eta, 2);
+        return (Vector3D(1.0) - phase_shift) * T * T * T * T * T * transmittance / abs_cos_theta(*wi) / pow(eta, 2);
 //        *pdf = 1;
 //        reflect(wo, wi);
 //        return reflectance/abs_cos_theta(*wi);
